@@ -3,12 +3,14 @@ from functools import wraps
 from io import FileIO
 from os import path
 from urlparse import parse_qs, urlparse
+from uuid import uuid4
 
 from iso8601 import parse_date
 
 from munch import munchify
 
 from restkit import BasicAuth, Resource, request
+from restkit.client import USER_AGENT as RESTKIT_UA
 from restkit.errors import ResourceNotFound
 
 from retrying import retry
@@ -78,8 +80,13 @@ class APIBaseClient(Resource):
 
     def request(self, method, path=None, payload=None, headers=None,
                 params_dict=None, **params):
+        _uuid = str(uuid4())
         _headers = dict(self.headers)
         _headers.update(headers or {})
+        _headers.update({
+            "User-Agent": RESTKIT_UA + " X-Client-Request-ID: " + _uuid,
+            "X-Client-Request-ID": _uuid
+        })
         try:
             response = super(APIBaseClient, self).request(
                 method, path=path, payload=payload, headers=_headers,
